@@ -55,7 +55,7 @@ const FunnelsPage: React.FC = () => {
     <div className="space-y-6">
       <h1 className="text-xl font-semibold text-black dark:text-white">Funnels</h1>
 
-      <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {Object.entries(funnel).map(([stage, count]) => (
           <div key={stage} className="p-4 rounded-lg bg-slate-100 dark:bg-slate-800">
             <p className="text-xs text-slate-500 dark:text-slate-400">{stage}</p>

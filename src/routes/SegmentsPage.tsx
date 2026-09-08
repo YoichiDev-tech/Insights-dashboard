@@ -9,8 +9,16 @@ interface EventRow {
   is_conversion: boolean | null;
 }
 
+interface SegmentsState {
+  devices: Record<string, number>;
+  referrers: Record<string, number>;
+  returning: number;
+  leads: number;
+  conversions: number;
+}
+
 const SegmentsPage: React.FC = () => {
-  const [segments, setSegments] = useState({
+  const [segments, setSegments] = useState<SegmentsState>({
     devices: {},
     referrers: {},
     returning: 0,
@@ -56,7 +64,7 @@ const SegmentsPage: React.FC = () => {
     <div className="space-y-6">
       <h1 className="text-xl font-semibold text-black dark:text-white">Segments</h1>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         <div className="p-4 rounded-lg bg-slate-100 dark:bg-slate-800">
           <p className="text-xs text-slate-500 dark:text-slate-400">Returning Users</p>
           <p className="text-2xl font-bold text-black dark:text-white">{segments.returning}</p>

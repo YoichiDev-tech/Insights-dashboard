@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
 
 import Sidebar from '../components/layout/Sidebar';
@@ -9,6 +9,7 @@ import { startSession, endSession, recordScroll } from '../lib/session';
 const DashboardLayout: React.FC = () => {
   const location = useLocation();
   const path = location.pathname;
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   // pageviews
   useEffect(() => {
@@ -41,12 +42,23 @@ const DashboardLayout: React.FC = () => {
     return () => window.removeEventListener('scroll', handleScroll);
   }, [path]);
 
+  // close the drawer automatically if the viewport grows past mobile
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth >= 768) setSidebarOpen(false);
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   return (
-    <div className="flex h-screen bg-white dark:bg-pw_bg transition-colors duration-300">
-      <Sidebar />
-      <div className="flex flex-col flex-1">
-        <TopBar />
-        <main className="flex-1 overflow-y-auto p-6 bg-white dark:bg-gradient-to-br dark:from-pw_bg dark:via-slate-900 dark:to-pw_bg transition-colors duration-300">
+    <div className="min-h-screen flex md:flex-row">
+      <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+
+      <div className="flex flex-col flex-1 min-w-0">
+        <TopBar onToggleSidebar={() => setSidebarOpen((v) => !v)} />
+
+        <main className="flex-1 overflow-y-auto p-4 sm:p-6 bg-white dark:bg-gradient-to-br dark:from-pw_bg dark:via-slate-900 dark:to-pw_bg transition-colors duration-300">
           <Outlet />
         </main>
       </div>

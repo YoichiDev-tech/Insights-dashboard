@@ -59,17 +59,32 @@ const SystemHealthPage: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-xl font-semibold text-black dark:text-white">System Health</h1>
+      {/* Title + Divider */}
+      <div>
+        <h1 className="text-xl font-semibold text-black dark:text-white">
+          System Health
+        </h1>
+        <div className="mt-2 h-px w-full bg-slate-300 dark:bg-slate-700" />
+      </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      {/* Stats */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         <div className="p-4 rounded-lg bg-slate-100 dark:bg-slate-800">
-          <p className="text-xs text-slate-500 dark:text-slate-400">Avg Analysis Score</p>
-          <p className="text-2xl font-bold text-black dark:text-white">{avgScore}</p>
+          <p className="text-xs text-slate-500 dark:text-slate-400">
+            Avg Analysis Score
+          </p>
+          <p className="text-2xl font-bold text-black dark:text-white">
+            {avgScore}
+          </p>
         </div>
 
         <div className="p-4 rounded-lg bg-slate-100 dark:bg-slate-800">
-          <p className="text-xs text-slate-500 dark:text-slate-400">Avg Issues Found</p>
-          <p className="text-2xl font-bold text-black dark:text-white">{avgIssues}</p>
+          <p className="text-xs text-slate-500 dark:text-slate-400">
+            Avg Issues Found
+          </p>
+          <p className="text-2xl font-bold text-black dark:text-white">
+            {avgIssues}
+          </p>
         </div>
       </div>
     </div>

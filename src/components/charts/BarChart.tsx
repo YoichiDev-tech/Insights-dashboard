@@ -1,43 +1,29 @@
 import React from 'react';
 import {
-  BarChart as RBarChart,
+  BarChart as ReBarChart,
   Bar,
   XAxis,
   YAxis,
   Tooltip,
-  ResponsiveContainer,
-  CartesianGrid
+  ResponsiveContainer
 } from 'recharts';
 
 interface Props {
-  data: { label: string; value: number }[];
+  data: any[];
   color?: string;
 }
 
-const BarChart: React.FC<Props> = ({ data, color = '#38bdf8' }) => {
-  const dark = document.documentElement.classList.contains('dark');
-  const textColor = dark ? '#cbd5f5' : '#1e293b';
-  const gridColor = dark ? '#1e293b' : '#e2e8f0';
-
+const BarChart: React.FC<Props> = ({ data, color = "#10b981" }) => {
   return (
-    <div className="bg-white dark:bg-pw_panel border border-slate-300 dark:border-slate-800 rounded-xl p-4 shadow-lg shadow-slate-900/40">
-      <div className="h-56">
-        <ResponsiveContainer width="100%" height="100%">
-          <RBarChart data={data}>
-            <CartesianGrid stroke={gridColor} strokeDasharray="3 3" />
-            <XAxis dataKey="label" tick={{ fill: textColor, fontSize: 11 }} />
-            <YAxis tick={{ fill: textColor, fontSize: 11 }} />
-            <Tooltip
-              contentStyle={{
-                backgroundColor: dark ? '#020617' : '#ffffff',
-                border: `1px solid ${gridColor}`,
-                borderRadius: 8
-              }}
-            />
-            <Bar dataKey="value" fill={color} radius={[4, 4, 0, 0]} />
-          </RBarChart>
-        </ResponsiveContainer>
-      </div>
+    <div className="w-full h-64 sm:h-80">
+      <ResponsiveContainer width="100%" height="100%">
+        <ReBarChart data={data}>
+          <XAxis dataKey="name" stroke="#94a3b8" />
+          <YAxis stroke="#94a3b8" />
+          <Tooltip />
+          <Bar dataKey="value" fill={color} />
+        </ReBarChart>
+      </ResponsiveContainer>
     </div>
   );
 };

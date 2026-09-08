@@ -1,5 +1,5 @@
 import { supabase } from './supabaseClient';
-import {
+import type {
   EngagementMetrics,
   EventSummary,
   SourceBreakdown,

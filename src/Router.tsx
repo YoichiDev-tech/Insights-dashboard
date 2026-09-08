@@ -1,4 +1,3 @@
-import React from 'react';
 import { createBrowserRouter } from 'react-router-dom';
 
 import DashboardLayout from './routes/DashboardLayout';
@@ -13,11 +12,12 @@ const router = createBrowserRouter([
     path: '/',
     element: <DashboardLayout />,
     children: [
-      { path: '/', element: <OverviewPage /> },
-      { path: '/traffic', element: <TrafficPage /> },
-      { path: '/engagement', element: <EngagementPage /> },
-      { path: '/sources', element: <SourcesPage /> },
-      { path: '/system', element: <SystemHealthPage /> }
+      { index: true, element: <OverviewPage /> },
+      { path: 'overview', element: <OverviewPage /> },
+      { path: 'traffic', element: <TrafficPage /> },
+      { path: 'engagement', element: <EngagementPage /> },
+      { path: 'sources', element: <SourcesPage /> },
+      { path: 'system-health', element: <SystemHealthPage /> }
     ]
   }
 ]);
