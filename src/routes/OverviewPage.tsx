@@ -43,10 +43,10 @@ const OverviewPage: React.FC = () => {
 
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,2fr)_minmax(16rem,1fr)]">
         <Panel title="Pageview trend" description="Most recent 14 calendar days in the loaded event window.">
-          {trend.length ? <AreaChart data={trend} color="#38bdf8" /> : <p className="text-sm text-slate-500 dark:text-slate-400">No pageviews available for a trend yet.</p>}
+          {trend.length ? <AreaChart data={trend} color="#38bdf8" /> : <p className="text-sm text-slate-500 dark:text-slate-400">No real pageview data is available yet.</p>}
         </Panel>
         <Panel title="Device mix" description="Devices recorded with pageviews.">
-          {Object.keys(devices).length ? <PieChart data={Object.entries(devices).map(([name, value]) => ({ name, value }))} colors={["#38bdf8", "#22c55e", "#f59e0b", "#a855f7"]} /> : <p className="text-sm text-slate-500 dark:text-slate-400">No device data available yet.</p>}
+          {Object.keys(devices).length ? <PieChart data={Object.entries(devices).map(([name, value]) => ({ name, value }))} colors={["#38bdf8", "#22c55e", "#f59e0b", "#a855f7"]} /> : <p className="text-sm text-slate-500 dark:text-slate-400">No real device data is available yet.</p>}
         </Panel>
       </div>
 
