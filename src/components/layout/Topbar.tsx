@@ -9,11 +9,11 @@ const TopBar: React.FC<TopBarProps> = ({ onToggleSidebar }) => {
   const { theme, toggleTheme } = useTheme();
 
   return (
-    <header className="w-full px-4 py-3 border-b border-slate-300 dark:border-slate-800 bg-white dark:bg-pw_panel flex items-center justify-between gap-2">
+    <header className="flex w-full items-center justify-between gap-2 border-b border-sky-100/80 bg-white/45 px-4 py-3 backdrop-blur-xl dark:border-slate-800 dark:bg-pw_panel/80">
       <div className="flex items-center gap-3 min-w-0">
         {/* Hamburger for mobile */}
         <button
-          className="md:hidden inline-flex items-center justify-center p-2 rounded-md border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-200 shrink-0"
+          className="md:hidden inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-md border border-sky-200 bg-white/70 text-slate-700 shadow-sm dark:border-slate-700 dark:bg-slate-900"
           onClick={onToggleSidebar}
           aria-label="Open navigation"
         >
@@ -38,7 +38,7 @@ const TopBar: React.FC<TopBarProps> = ({ onToggleSidebar }) => {
       <div className="flex items-center gap-2 shrink-0">
         <button
           onClick={toggleTheme}
-          className="inline-flex items-center justify-center p-2 rounded-md border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-gray-100 dark:hover:bg-slate-900 transition"
+          className="inline-flex h-11 w-11 items-center justify-center rounded-md border border-sky-200 bg-white/70 text-slate-700 shadow-sm transition hover:bg-white dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
           aria-label="Toggle theme"
           title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
         >

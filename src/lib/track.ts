@@ -1,38 +1,38 @@
-const SESSION_KEY = "bw_session_id";
-
-function getSessionId(): string {
-  try {
-    const existing = window.sessionStorage.getItem(SESSION_KEY);
-    if (existing) return existing;
-    const fresh =
-      typeof crypto !== "undefined" && "randomUUID" in crypto
-        ? crypto.randomUUID()
-        : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
-    window.sessionStorage.setItem(SESSION_KEY, fresh);
-    return fresh;
-  } catch {
-    // sessionStorage can throw in locked-down browser contexts (rare) —
-    // fall back to a per-call random id rather than breaking tracking
-    return `${Date.now()}-${Math.random().toString(36).slice(2)}`;
-  }
-}
-
-type EventKind = "pageview" | "action";
+type EventKind =
+  | "pageview"
+  | "action"
+  | "session_start"
+  | "session_end"
+  | "scroll"
+  | "analysis_start"
+  | "analysis_complete"
+  | "chat_open"
+  | "chat_message"
+  | "chat_close";
 
 interface TrackOptions {
   path?: string;
-  intent?: "audit" | "build";
-  metadata?: Record<string, unknown>;
+  device?: string;
+  referrer?: string;
+  durationMs?: number;
+  scrollDepth?: number;
+  chatLength?: number;
+  analysisScore?: number;
+  issuesCount?: number;
+  stage?: string;
 }
 
 export function track(kind: EventKind, eventName: string, options: TrackOptions = {}): void {
   const body = JSON.stringify({
-    kind,
-    eventName,
+    type: kind === "action" ? eventName : kind,
     path: options.path ?? window.location.pathname,
-    intent: options.intent,
-    sessionId: getSessionId(),
-    metadata: options.metadata ?? {},
+    device: options.device,
+    referrer: options.referrer,
+    duration_ms: options.durationMs,
+    scroll_depth: options.scrollDepth,
+    chat_length: options.chatLength,
+    analysis_score: options.analysisScore,
+    issues_count: options.issuesCount
   });
 
   // sendBeacon fires-and-forgets even during page unload/navigation, which

@@ -58,7 +58,7 @@ const DashboardLayout: React.FC = () => {
       <div className="flex flex-col flex-1 min-w-0">
         <TopBar onToggleSidebar={() => setSidebarOpen((v) => !v)} />
 
-        <main className="flex-1 overflow-y-auto p-4 sm:p-6 bg-white dark:bg-gradient-to-br dark:from-pw_bg dark:via-slate-900 dark:to-pw_bg transition-colors duration-300">
+        <main className="min-w-0 flex-1 overflow-y-auto bg-transparent p-4 transition-colors duration-300 sm:p-6">
           <Outlet />
         </main>
       </div>

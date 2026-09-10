@@ -6,6 +6,10 @@ const items = [
   { key: 'traffic', label: 'Traffic', path: '/traffic' },
   { key: 'engagement', label: 'Engagement', path: '/engagement' },
   { key: 'sources', label: 'Sources', path: '/sources' },
+  { key: 'pages', label: 'Pages', path: '/pages' },
+  { key: 'interactions', label: 'Interactions', path: '/interactions' },
+  { key: 'reports', label: 'Reports', path: '/reports' },
+  { key: 'live-feed', label: 'Live Feed', path: '/live-feed' },
   { key: 'system-health', label: 'System Health', path: '/system-health' }
 ];
 
@@ -38,25 +42,24 @@ const Sidebar: React.FC<Props> = ({ open, onClose }) => {
       )}
 
       <aside
-        className={`fixed inset-y-0 left-0 z-40 w-72 max-w-[80vw] transform bg-white dark:bg-pw_panel
-          border-r border-slate-300 dark:border-slate-800 flex flex-col
+        className={`fixed inset-y-0 left-0 z-40 flex w-72 max-w-[80vw] transform flex-col border-r border-sky-100 bg-white/70 backdrop-blur-xl dark:border-slate-800 dark:bg-pw_panel
           transition-transform duration-200 ease-out
           md:static md:z-auto md:w-64 md:max-w-none md:translate-x-0
           ${open ? 'translate-x-0' : '-translate-x-full'}`}
       >
-        <div className="px-4 py-4 border-b border-slate-300 dark:border-slate-800 flex items-center justify-between">
+        <div className="flex items-center justify-between border-b border-sky-100 px-4 py-4 dark:border-slate-800">
           <div>
-            <h1 className="text-lg font-semibold tracking-tight text-black dark:text-slate-100">
+            <h1 className="text-lg font-semibold tracking-tight text-slate-800 dark:text-slate-100">
               PrismWave <span className="text-pw_accent">Ops Hub</span>
             </h1>
-            <p className="text-xs text-gray-600 dark:text-pw_muted mt-1">
+            <p className="mt-1 text-xs text-slate-500 dark:text-pw_muted">
               Private analytics &amp; system overview
             </p>
           </div>
 
           {/* Close button, mobile only */}
           <button
-            className="md:hidden p-1.5 rounded-md text-gray-600 dark:text-pw_muted hover:bg-gray-100 dark:hover:bg-slate-900"
+            className="md:hidden inline-flex h-11 w-11 items-center justify-center rounded-md text-gray-600 dark:text-pw_muted hover:bg-gray-100 dark:hover:bg-slate-900"
             onClick={onClose}
             aria-label="Close navigation"
           >
@@ -74,11 +77,11 @@ const Sidebar: React.FC<Props> = ({ open, onClose }) => {
               <button
                 key={item.key}
                 onClick={() => handleNavigate(item.path)}
-                className={`w-full text-left px-3 py-2 rounded-md text-sm transition
+                className={`w-full min-h-11 text-left px-3 py-2 rounded-md text-sm transition
                   ${
                     isActive
-                      ? 'bg-gray-200 dark:bg-slate-800 text-black dark:text-slate-50'
-                      : 'text-gray-600 dark:text-pw_muted hover:bg-gray-100 dark:hover:bg-slate-900 hover:text-black dark:hover:text-slate-100'
+                      ? 'bg-sky-100 text-sky-900 dark:bg-slate-800 dark:text-slate-50'
+                        : 'text-slate-600 dark:text-pw_muted hover:bg-sky-50 hover:text-sky-900 dark:hover:bg-slate-900 dark:hover:text-slate-100'
                   }`}
               >
                 {item.label}

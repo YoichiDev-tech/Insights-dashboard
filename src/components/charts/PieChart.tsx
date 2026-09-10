@@ -4,6 +4,7 @@ import {
   Pie,
   Cell,
   Tooltip,
+  Legend,
   ResponsiveContainer
 } from 'recharts';
 
@@ -14,14 +15,14 @@ interface Props {
 
 const PieChart: React.FC<Props> = ({ data, colors = ["#6366f1", "#10b981", "#f59e0b"] }) => {
   return (
-    <div className="w-full h-64 sm:h-80">
+    <div className="w-full min-w-0 h-72 sm:h-80">
       <ResponsiveContainer width="100%" height="100%">
         <RePieChart>
           <Pie
             data={data}
             dataKey="value"
             nameKey="name"
-            outerRadius="80%"
+            outerRadius="62%"
             fill="#8884d8"
           >
             {data.map((_, i) => (
@@ -29,6 +30,7 @@ const PieChart: React.FC<Props> = ({ data, colors = ["#6366f1", "#10b981", "#f59
             ))}
           </Pie>
           <Tooltip />
+          <Legend verticalAlign="bottom" wrapperStyle={{ fontSize: 12, paddingTop: 8 }} />
         </RePieChart>
       </ResponsiveContainer>
     </div>
