@@ -8,6 +8,8 @@ const items = [
   { key: 'sources', label: 'Sources', path: '/sources' },
   { key: 'pages', label: 'Pages', path: '/pages' },
   { key: 'interactions', label: 'Interactions', path: '/interactions' },
+  { key: 'funnels', label: 'Funnels', path: '/funnels' },
+  { key: 'leads', label: 'Leads', path: '/leads' },
   { key: 'reports', label: 'Reports', path: '/reports' },
   { key: 'live-feed', label: 'Live Feed', path: '/live-feed' },
   { key: 'system-health', label: 'System Health', path: '/system-health' }

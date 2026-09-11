@@ -2,6 +2,11 @@ import { supabase } from './supabaseClient';
 
 export interface AnalyticsEvent {
   id: string;
+  kind: string;
+  event_name: string;
+  session_id: string;
+  metadata: Record<string, unknown>;
+  intent: string | null;
   type: string;
   path: string;
   device: string | null;
@@ -17,13 +22,53 @@ export interface AnalyticsEvent {
 
 export async function fetchAnalyticsEvents(limit = 1000): Promise<AnalyticsEvent[]> {
   const { data, error } = await supabase
-    .from('events')
+    .from('interaction_events')
     .select('*')
     .order('created_at', { ascending: false })
     .limit(limit);
 
   if (error || !data) throw error ?? new Error('No analytics data returned');
-  return data as AnalyticsEvent[];
+  return (data as Omit<AnalyticsEvent, 'type'>[]).map((event) => ({
+    ...event,
+    type: event.event_name,
+  }));
+}
+
+export type LeadStatus = 'new' | 'contacted' | 'booked' | 'qualified' | 'won' | 'lost';
+
+export interface Lead {
+  id: string;
+  intent: 'audit' | 'build';
+  name: string;
+  email: string;
+  business: string | null;
+  site_url: string | null;
+  idea: string | null;
+  message: string;
+  session_id: string | null;
+  audit_score: number | null;
+  audit_findings: string[];
+  scope_estimate: string | null;
+  attribution: { source?: string; medium?: string; campaign?: string };
+  status: LeadStatus;
+  created_at: string;
+  updated_at: string;
+}
+
+export async function fetchLeads(limit = 200): Promise<Lead[]> {
+  const { data, error } = await supabase
+    .from('leads')
+    .select('*')
+    .order('created_at', { ascending: false })
+    .limit(limit);
+
+  if (error || !data) throw error ?? new Error('No lead data returned');
+  return data as Lead[];
+}
+
+export async function updateLeadStatus(id: string, status: LeadStatus): Promise<void> {
+  const { error } = await supabase.from('leads').update({ status }).eq('id', id);
+  if (error) throw error;
 }
 
 export function countBy<T extends string>(values: T[]): Record<string, number> {

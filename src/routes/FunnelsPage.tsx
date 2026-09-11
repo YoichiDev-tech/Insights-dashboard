@@ -1,65 +1,31 @@
-import React, { useEffect, useState } from 'react';
-import { supabase } from '../lib/supabaseClient';
-
-interface EventRow {
-  user_id: string;
-  stage: string | null;
-}
+import React from 'react';
+import { useAnalyticsEvents } from '../hooks/useAnalyticsEvents';
 
 const FunnelsPage: React.FC = () => {
-  const [funnel, setFunnel] = useState({
-    landing: 0,
-    scroll: 0,
-    chat: 0,
-    analysis: 0,
-    lead: 0,
-    conversion: 0
-  });
-
-  useEffect(() => {
-    (async () => {
-      const { data, error } = await supabase
-        .from('events')
-        .select('user_id, stage');
-
-      if (error) return console.error(error);
-
-      const rows = data as EventRow[];
-
-      const stages = {
-        landing: new Set<string>(),
-        scroll: new Set<string>(),
-        chat: new Set<string>(),
-        analysis: new Set<string>(),
-        lead: new Set<string>(),
-        conversion: new Set<string>()
-      };
-
-      rows.forEach((e) => {
-        if (!e.stage || !e.user_id) return;
-        if (stages[e.stage]) stages[e.stage].add(e.user_id);
-      });
-
-      setFunnel({
-        landing: stages.landing.size,
-        scroll: stages.scroll.size,
-        chat: stages.chat.size,
-        analysis: stages.analysis.size,
-        lead: stages.lead.size,
-        conversion: stages.conversion.size
-      });
-    })();
-  }, []);
+  const { events, loading, error } = useAnalyticsEvents();
+  const stages = [
+    ['Visitors', 'pageview'],
+    ['Audits started', 'audit_run'],
+    ['Audits completed', 'audit_completed'],
+    ['Teardowns requested', 'audit_teardown_requested'],
+    ['Contact submissions', 'contact_submitted'],
+    ['Calls booked', 'booking_completed'],
+  ] as const;
+  const funnel = stages.map(([label, eventName]) => ({
+    label,
+    count: new Set(events.filter((event) => event.type === eventName).map((event) => event.session_id)).size,
+  }));
 
   return (
     <div className="space-y-6">
       <h1 className="text-xl font-semibold text-black dark:text-white">Funnels</h1>
+      {error && <p className="rounded-md bg-red-50 p-3 text-sm text-red-700 dark:bg-red-950/30 dark:text-red-300">{error}</p>}
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {Object.entries(funnel).map(([stage, count]) => (
-          <div key={stage} className="p-4 rounded-lg bg-slate-100 dark:bg-slate-800">
-            <p className="text-xs text-slate-500 dark:text-slate-400">{stage}</p>
-            <p className="text-2xl font-bold text-black dark:text-white">{count}</p>
+        {funnel.map(({ label, count }) => (
+          <div key={label} className="p-4 rounded-lg bg-slate-100 dark:bg-slate-800">
+            <p className="text-xs text-slate-500 dark:text-slate-400">{label}</p>
+            <p className="text-2xl font-bold text-black dark:text-white">{loading ? '...' : count}</p>
           </div>
         ))}
       </div>

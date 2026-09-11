@@ -1,15 +1,8 @@
-import { createClient } from '@supabase/supabase-js';
+import { supabaseAdmin } from './_lib/supabaseAdmin';
 
 export const config = {
   runtime: 'edge'
 };
-
-// Server-side Supabase client for this Edge Function.
-// Uses the same public URL/anon key the frontend uses (RLS-protected insert).
-const supabase = createClient(
-  process.env.VITE_SUPABASE_URL as string,
-  process.env.VITE_SUPABASE_ANON_KEY as string
-);
 
 export default async function handler(request: Request): Promise<Response> {
   if (request.method !== 'POST') {
@@ -28,23 +21,29 @@ export default async function handler(request: Request): Promise<Response> {
       scroll_depth,
       chat_length,
       analysis_score,
-      issues_count
+      issues_count,
+      session_id
     } = body;
 
     if (!type || !path) {
       return new Response('Missing fields', { status: 400 });
     }
 
-    const { error } = await supabase.from('events').insert({
-      type,
+    const { error } = await supabaseAdmin.from('interaction_events').insert({
+      kind: type === 'pageview' ? 'pageview' : 'action',
+      event_name: type,
       path,
-      device,
-      referrer,
-      duration_ms,
-      scroll_depth,
-      chat_length,
-      analysis_score,
-      issues_count
+      session_id: session_id ?? `ops-${crypto.randomUUID()}`,
+      metadata: {
+        source: 'ops',
+        device,
+        referrer,
+        duration_ms,
+        scroll_depth,
+        chat_length,
+        analysis_score,
+        issues_count
+      }
     });
 
     if (error) {

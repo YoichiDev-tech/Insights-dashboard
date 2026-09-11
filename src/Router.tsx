@@ -10,6 +10,8 @@ import PagesPage from './routes/PagesPage';
 import InteractionsPage from './routes/InteractionsPage';
 import ReportsPage from './routes/ReportsPage';
 import LiveFeedPage from './routes/LiveFeedPage';
+import FunnelsPage from './routes/FunnelsPage';
+import LeadsPage from './routes/LeadsPage';
 
 const router = createBrowserRouter([
   {
@@ -26,6 +28,8 @@ const router = createBrowserRouter([
       { path: 'clicks', element: <InteractionsPage /> },
       { path: 'reports', element: <ReportsPage /> },
       { path: 'live-feed', element: <LiveFeedPage /> },
+      { path: 'funnels', element: <FunnelsPage /> },
+      { path: 'leads', element: <LeadsPage /> },
       { path: 'system-health', element: <SystemHealthPage /> }
     ]
   }

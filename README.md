@@ -1,11 +1,11 @@
-# BrightWave Ops — Roadmap & Setup
+# PrismWave Ops — Roadmap & Setup
 
 ## What this is
 
-A private, unlinked dashboard + AI agent system for running BrightWave
-Studio. Lives in its own Vercel project, its own Supabase project, its own
-auth — deliberately disconnected from the public BrightWave Studio site so
-no visitor-facing code path can ever reach it.
+A private, unlinked dashboard + AI agent system for running PrismWave Studio.
+It lives in its own Vercel project and remains unlinked from the public site,
+but it reads the Studio's shared Supabase event and lead tables. Authentication
+and the operator allowlist still gate every dashboard view.
 
 ## Roadmap
 
@@ -52,9 +52,9 @@ no visitor-facing code path can ever reach it.
 
 ## Deploy steps
 
-1. **Create a new Supabase project** (separate from anything ServeSync
-   uses — keeps a leak in one project from touching the other).
-2. Run `supabase/schema.sql` in the SQL editor.
+1. Use the same Supabase project as PrismWave Studio, separate from anything
+   ServeSync uses.
+2. Run `../PrismWave Studio/supabase/schema.sql` in the SQL editor.
 3. Insert yourself: `insert into allowed_operators (email) values ('you@yourdomain.com');`
 4. **Push this folder as its own GitHub repo**, import it into a **new**
    Vercel project (not the BrightWave Studio one).
@@ -66,11 +66,11 @@ no visitor-facing code path can ever reach it.
    small extra layer, on top of the auth that actually protects the data).
 7. Sign in with your allow-listed email via the magic link.
 
-## Why a separate project instead of a hidden route
+## Why a separate Vercel project instead of a hidden route
 
 Client-side JS bundles ship to every visitor's browser, including code for
 routes nobody's supposed to visit. A `/admin` route "hidden" inside
-BrightWave Studio is still sitting in the bundle anyone can open in
+PrismWave Studio is still sitting in the bundle anyone can open in
 DevTools. A genuinely separate project means the dashboard's code — and
 its secrets — never leave Vercel's servers for BrightWave Studio's
 visitors, because it isn't part of that build at all.
