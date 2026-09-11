@@ -23,6 +23,7 @@ const EventTable: React.FC<Props> = ({ events, emptyMessage = 'No events recorde
           <tr>
             <th className="px-4 py-2 font-medium sm:px-0">Event</th>
             <th className="px-4 py-2 font-medium">Page</th>
+            <th className="px-4 py-2 font-medium">Source</th>
             <th className="px-4 py-2 font-medium">Device</th>
             <th className="px-4 py-2 font-medium">Time</th>
           </tr>
@@ -32,6 +33,7 @@ const EventTable: React.FC<Props> = ({ events, emptyMessage = 'No events recorde
             <tr key={event.id} className="text-slate-700 dark:text-slate-200">
               <td className="whitespace-nowrap px-4 py-3 font-medium sm:px-0">{eventLabel(event.type)}</td>
               <td className="max-w-[12rem] truncate px-4 py-3" title={event.path}>{formatPath(event.path)}</td>
+              <td className="max-w-[10rem] truncate px-4 py-3 text-xs" title={String(event.metadata?.attribution ?? '')}>{String((event.metadata?.attribution as { source?: string } | undefined)?.source ?? 'direct')}</td>
               <td className="whitespace-nowrap px-4 py-3">{event.device || 'Unknown'}</td>
               <td className="whitespace-nowrap px-4 py-3 text-xs text-slate-500 dark:text-slate-400">{formatDate(event.created_at)}</td>
             </tr>

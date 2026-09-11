@@ -7,7 +7,9 @@ const FunnelsPage: React.FC = () => {
     ['Visitors', 'pageview'],
     ['Audits started', 'audit_run'],
     ['Audits completed', 'audit_completed'],
+    ['Reports requested', 'audit_lead_captured'],
     ['Teardowns requested', 'audit_teardown_requested'],
+    ['Revamp previews', 'revamp_preview_generated'],
     ['Contact submissions', 'contact_submitted'],
     ['Calls booked', 'booking_completed'],
   ] as const;

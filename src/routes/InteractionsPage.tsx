@@ -10,7 +10,7 @@ const InteractionsPage: React.FC = () => {
   const { events, loading, error } = useAnalyticsEvents();
   const interactions = events.filter((event) => !ignoredTypes.has(event.type));
   const typeCounts = countBy(interactions.map((event) => event.type));
-  const conversionTypes = new Set(['contact_submitted', 'audit_completed', 'analysis_complete', 'audit_run']);
+  const conversionTypes = new Set(['contact_submitted', 'audit_completed', 'audit_lead_captured', 'audit_teardown_requested', 'booking_completed', 'revamp_preview_generated', 'analysis_complete', 'audit_run']);
   const conversions = interactions.filter((event) => conversionTypes.has(event.type));
   const chatMessages = events.filter((event) => event.type === 'chat_message' || event.chat_length !== null);
 
