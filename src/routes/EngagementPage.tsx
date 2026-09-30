@@ -1,92 +1,100 @@
-import React, { useEffect, useState } from 'react';
-import { supabase } from '../lib/supabaseClient';
+import { useMemo } from 'react';
+import BarChart from '../components/charts/BarChart';
+import Empty from '../components/analytics/Empty';
+import MetricCard from '../components/analytics/MetricCard';
+import PageHeader from '../components/analytics/PageHeader';
+import Panel from '../components/analytics/Panel';
+import { useEvents } from '../hooks/useEvents';
+import {
+  average,
+  formatDuration,
+  humanOnly,
+  isBounce,
+  measurableDurations,
+  pct,
+  summarizeSessions,
+} from '../lib/metrics';
 
-interface EventRow {
-  id: string;
-  type: string;
-  path: string;
-  device: string | null;
-  referrer: string | null;
-  duration_ms: number | null;
-  scroll_depth: number | null;
-  chat_length: number | null;
-  analysis_score: number | null;
-  issues_count: number | null;
-  created_at: string;
-}
+export default function EngagementPage() {
+  const { events, loading } = useEvents();
 
-const EngagementPage: React.FC = () => {
-  const [avgScroll, setAvgScroll] = useState(0);
-  const [avgSession, setAvgSession] = useState(0);
-  const [chatMessages, setChatMessages] = useState(0);
+  const view = useMemo(() => {
+    const sessions = summarizeSessions(humanOnly(events));
+    const withPageviews = sessions.filter((session) => session.pageviews > 0);
+    const bounces = withPageviews.filter(isBounce).length;
+    const depth = [1, 2, 3, 4, 5].map((pages) => ({
+      name: pages === 5 ? '5+' : String(pages),
+      value: withPageviews.filter((session) => (pages === 5 ? session.pageviews >= 5 : session.pageviews === pages)).length,
+    }));
+    const devices = ['desktop', 'mobile', 'tablet', 'unknown'].map((device) => {
+      const group = withPageviews.filter((session) => session.device === device);
+      return {
+        device,
+        sessions: group.length,
+        bounce: pct(group.filter(isBounce).length, group.length),
+        duration: average(measurableDurations(group)),
+      };
+    }).filter((row) => row.sessions > 0);
+    return {
+      sessions: withPageviews,
+      bounceRate: pct(bounces, withPageviews.length),
+      avgDuration: average(measurableDurations(withPageviews)),
+      pagesPerSession: average(withPageviews.map((session) => session.pageviews)),
+      interacted: withPageviews.filter((session) => session.actions > 0).length,
+      depth,
+      devices,
+    };
+  }, [events]);
 
-  useEffect(() => {
-    (async () => {
-      const { data, error } = await supabase
-        .from('events')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (error) return console.error(error);
-
-      const rows = data as EventRow[];
-
-      // SCROLL DEPTH
-      const scrollEvents = rows.filter((e) => e.scroll_depth !== null);
-      const avgScrollDepth =
-        scrollEvents.length > 0
-          ? Math.round(
-              scrollEvents.reduce((sum, e) => sum + (e.scroll_depth || 0), 0) /
-                scrollEvents.length
-            )
-          : 0;
-      setAvgScroll(avgScrollDepth);
-
-      // SESSION DURATION
-      const sessionEnds = rows.filter((e) => e.type === 'session_end');
-      const avgSessionDuration =
-        sessionEnds.length > 0
-          ? Math.round(
-              sessionEnds.reduce(
-                (sum, e) => sum + (e.duration_ms || 0),
-                0
-              ) / sessionEnds.length
-            )
-          : 0;
-      setAvgSession(avgSessionDuration);
-
-      // CHAT MESSAGES
-      const chatEvents = rows.filter((e) => e.chat_length !== null);
-      const totalChatLength = chatEvents.reduce(
-        (sum, e) => sum + (e.chat_length || 0),
-        0
-      );
-      setChatMessages(totalChatLength);
-    })();
-  }, []);
+  const show = (value: string | number) => (loading ? '...' : value);
 
   return (
     <div className="space-y-6">
-      <h1 className="text-xl font-semibold text-black dark:text-white">Engagement</h1>
+      <PageHeader
+        title="Engagement"
+        description="How visitors behave once they arrive. Scroll depth is not collected by the platform tracker, so it is not shown."
+      />
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        <div className="p-4 rounded-lg bg-slate-100 dark:bg-slate-800">
-          <p className="text-xs text-slate-500 dark:text-slate-400">Avg Scroll Depth</p>
-          <p className="text-2xl font-bold text-black dark:text-white">{avgScroll}%</p>
-        </div>
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <MetricCard label="Bounce rate" value={show(`${view.bounceRate}%`)} detail="Single-page sessions with no action" />
+        <MetricCard label="Avg. session" value={show(formatDuration(view.avgDuration))} detail="Sessions with 2+ events" />
+        <MetricCard label="Pages / session" value={show(view.pagesPerSession.toFixed(1))} />
+        <MetricCard label="Sessions with an action" value={show(view.interacted)} detail={`${pct(view.interacted, view.sessions.length)}% of sessions`} />
+      </div>
 
-        <div className="p-4 rounded-lg bg-slate-100 dark:bg-slate-800">
-          <p className="text-xs text-slate-500 dark:text-slate-400">Avg Session Duration</p>
-          <p className="text-2xl font-bold text-black dark:text-white">{avgSession} ms</p>
-        </div>
-
-        <div className="p-4 rounded-lg bg-slate-100 dark:bg-slate-800">
-          <p className="text-xs text-slate-500 dark:text-slate-400">Chat Activity</p>
-          <p className="text-2xl font-bold text-black dark:text-white">{chatMessages}</p>
-        </div>
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <Panel title="Session depth" description="Sessions by number of pages viewed.">
+          {view.sessions.length ? <BarChart data={view.depth} color="#6c63ff" /> : <Empty>No sessions recorded in this period.</Empty>}
+        </Panel>
+        <Panel title="By device">
+          {view.devices.length ? (
+            <div className="-mx-4 overflow-x-auto sm:mx-0">
+              <table className="min-w-full text-left text-sm">
+                <thead className="border-b border-slate-200 text-xs text-slate-500 dark:border-slate-800 dark:text-slate-400">
+                  <tr>
+                    <th className="px-4 py-2 font-medium sm:px-0">Device</th>
+                    <th className="px-4 py-2 font-medium">Sessions</th>
+                    <th className="px-4 py-2 font-medium">Bounce</th>
+                    <th className="px-4 py-2 font-medium">Avg. session</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                  {view.devices.map((row) => (
+                    <tr key={row.device} className="text-slate-700 dark:text-slate-200">
+                      <td className="px-4 py-3 font-medium capitalize sm:px-0">{row.device}</td>
+                      <td className="px-4 py-3">{row.sessions}</td>
+                      <td className="px-4 py-3">{row.bounce}%</td>
+                      <td className="px-4 py-3">{formatDuration(row.duration)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <Empty>No sessions recorded in this period.</Empty>
+          )}
+        </Panel>
       </div>
     </div>
   );
-};
-
-export default EngagementPage;
+}

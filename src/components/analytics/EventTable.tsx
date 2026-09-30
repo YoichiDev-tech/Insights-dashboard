@@ -1,20 +1,15 @@
-import React from 'react';
-import {
-  eventLabel,
-  formatDate,
-  formatPath,
-  type AnalyticsEvent
-} from '../../lib/analytics';
+import type { TrackedEvent } from '../../lib/events';
+import { eventLabel, timeAgo } from '../../lib/metrics';
+import Empty from './Empty';
 
 interface Props {
-  events: AnalyticsEvent[];
+  events: TrackedEvent[];
+  now: number;
   emptyMessage?: string;
 }
 
-const EventTable: React.FC<Props> = ({ events, emptyMessage = 'No events recorded yet.' }) => {
-  if (events.length === 0) {
-    return <p className="text-sm text-slate-500 dark:text-slate-400">{emptyMessage}</p>;
-  }
+export default function EventTable({ events, now, emptyMessage = 'No events recorded yet.' }: Props) {
+  if (events.length === 0) return <Empty>{emptyMessage}</Empty>;
 
   return (
     <div className="-mx-4 overflow-x-auto sm:mx-0">
@@ -25,23 +20,23 @@ const EventTable: React.FC<Props> = ({ events, emptyMessage = 'No events recorde
             <th className="px-4 py-2 font-medium">Page</th>
             <th className="px-4 py-2 font-medium">Source</th>
             <th className="px-4 py-2 font-medium">Device</th>
-            <th className="px-4 py-2 font-medium">Time</th>
+            <th className="px-4 py-2 font-medium">When</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
           {events.map((event) => (
             <tr key={event.id} className="text-slate-700 dark:text-slate-200">
-              <td className="whitespace-nowrap px-4 py-3 font-medium sm:px-0">{eventLabel(event.type)}</td>
-              <td className="max-w-[12rem] truncate px-4 py-3" title={event.path}>{formatPath(event.path)}</td>
-              <td className="max-w-[10rem] truncate px-4 py-3 text-xs" title={String(event.metadata?.attribution ?? '')}>{String((event.metadata?.attribution as { source?: string } | undefined)?.source ?? 'direct')}</td>
-              <td className="whitespace-nowrap px-4 py-3">{event.device || 'Unknown'}</td>
-              <td className="whitespace-nowrap px-4 py-3 text-xs text-slate-500 dark:text-slate-400">{formatDate(event.created_at)}</td>
+              <td className="whitespace-nowrap px-4 py-3 font-medium sm:px-0">{eventLabel(event.name)}</td>
+              <td className="max-w-[12rem] truncate px-4 py-3" title={event.path}>{event.path}</td>
+              <td className="max-w-[10rem] truncate px-4 py-3 text-xs" title={event.referrer || event.source}>{event.source}</td>
+              <td className="whitespace-nowrap px-4 py-3 capitalize">{event.device}</td>
+              <td className="whitespace-nowrap px-4 py-3 text-xs text-slate-500 dark:text-slate-400" title={new Date(event.ts).toLocaleString()}>
+                {timeAgo(event.ts, now)}
+              </td>
             </tr>
           ))}
         </tbody>
       </table>
     </div>
   );
-};
-
-export default EventTable;
+}

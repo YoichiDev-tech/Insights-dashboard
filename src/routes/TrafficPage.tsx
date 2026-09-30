@@ -1,90 +1,58 @@
-import React, { useEffect, useState } from 'react';
-import { supabase } from '../lib/supabaseClient';
+import { useMemo } from 'react';
+import AreaChart from '../components/charts/AreaChart';
+import BarChart from '../components/charts/BarChart';
+import PieChart from '../components/charts/PieChart';
+import Empty from '../components/analytics/Empty';
+import MetricCard from '../components/analytics/MetricCard';
+import PageHeader from '../components/analytics/PageHeader';
+import Panel from '../components/analytics/Panel';
+import { RANGES } from '../context/eventsContext';
+import { useEvents } from '../hooks/useEvents';
+import { countBy, delta, hourOfDaySeries, humanOnly, trendSeries } from '../lib/metrics';
 
-interface EventRow {
-  id: string;
-  type: string;
-  path: string;
-  device: string | null;
-  referrer: string | null;
-  duration_ms: number | null;
-  scroll_depth: number | null;
-  chat_length: number | null;
-  analysis_score: number | null;
-  issues_count: number | null;
-  created_at: string;
-}
+export default function TrafficPage() {
+  const { events, previousEvents, loading, range, now } = useEvents();
 
-const TrafficPage: React.FC = () => {
-  const [pageviews, setPageviews] = useState(0);
-  const [devices, setDevices] = useState<{ [key: string]: number }>({});
-  const [referrers, setReferrers] = useState<{ [key: string]: number }>({});
-
-  useEffect(() => {
-    (async () => {
-      const { data, error } = await supabase
-        .from('events')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (error) return console.error(error);
-
-      const rows = data as EventRow[];
-
-      // pageviews
-      const pv = rows.filter((e) => e.type === 'pageview').length;
-      setPageviews(pv);
-
-      // device breakdown
-      const deviceCounts: { [key: string]: number } = {};
-      rows.forEach((e) => {
-        if (e.device) {
-          deviceCounts[e.device] = (deviceCounts[e.device] || 0) + 1;
-        }
-      });
-      setDevices(deviceCounts);
-
-      // referrer breakdown
-      const refCounts: { [key: string]: number } = {};
-      rows.forEach((e) => {
-        if (e.referrer) {
-          refCounts[e.referrer] = (refCounts[e.referrer] || 0) + 1;
-        }
-      });
-      setReferrers(refCounts);
-    })();
-  }, []);
+  const view = useMemo(() => {
+    const pageviews = humanOnly(events).filter((event) => event.kind === 'pageview');
+    const previous = humanOnly(previousEvents).filter((event) => event.kind === 'pageview');
+    const visitors = new Set(pageviews.map((event) => event.visitorKey)).size;
+    const devices = [...countBy(pageviews, (event) => event.device).entries()].map(([name, value]) => ({ name, value }));
+    return {
+      pageviews,
+      visitors,
+      change: delta(pageviews.length, previous.length),
+      devices,
+      trend: trendSeries(pageviews, RANGES[range].days, now),
+      hours: hourOfDaySeries(pageviews),
+    };
+  }, [events, previousEvents, range, now]);
 
   return (
     <div className="space-y-6">
-      <h1 className="text-xl font-semibold text-black dark:text-white">Traffic</h1>
+      <PageHeader title="Traffic" description="Volume and timing of human pageviews on the platform." />
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
-        <div className="p-4 rounded-lg bg-slate-100 dark:bg-slate-800">
-          <p className="text-xs text-slate-500 dark:text-slate-400">Pageviews</p>
-          <p className="text-2xl font-bold text-black dark:text-white">{pageviews}</p>
-        </div>
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <MetricCard label="Pageviews" value={loading ? '...' : view.pageviews.length} detail={view.change.label} tone={view.change.tone} />
+        <MetricCard label="Unique visitors" value={loading ? '...' : view.visitors} detail="Distinct hashed IPs" />
+        <MetricCard
+          label="Pages per visitor"
+          value={loading ? '...' : view.visitors ? (view.pageviews.length / view.visitors).toFixed(1) : '0'}
+        />
+      </div>
 
-        <div className="p-4 rounded-lg bg-slate-100 dark:bg-slate-800">
-          <p className="text-xs text-slate-500 dark:text-slate-400">Devices</p>
-          {Object.entries(devices).map(([device, count]) => (
-            <p key={device} className="text-black dark:text-white">
-              {device}: {count}
-            </p>
-          ))}
-        </div>
+      <Panel title="Pageviews over time" description={RANGES[range].label}>
+        {view.pageviews.length ? <AreaChart data={view.trend} /> : <Empty>No pageviews recorded in this period.</Empty>}
+      </Panel>
 
-        <div className="p-4 rounded-lg bg-slate-100 dark:bg-slate-800">
-          <p className="text-xs text-slate-500 dark:text-slate-400">Referrers</p>
-          {Object.entries(referrers).map(([ref, count]) => (
-            <p key={ref} className="text-black dark:text-white">
-              {ref}: {count}
-            </p>
-          ))}
-        </div>
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <Panel title="Busiest hours" description="Pageviews by hour of day, in your local time zone.">
+          {view.pageviews.length ? <BarChart data={view.hours} color="#ffb84d" /> : <Empty>No pageviews recorded in this period.</Empty>}
+        </Panel>
+        <Panel title="Devices" description="Pageviews by device type.">
+          {view.devices.length ? <PieChart data={view.devices} /> : <Empty>No device data in this period.</Empty>}
+        </Panel>
       </div>
     </div>
   );
-};
-
-export default TrafficPage;
+}

@@ -1,31 +1,24 @@
-import React from 'react';
-import {
-  BarChart as ReBarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  Tooltip,
-  ResponsiveContainer
-} from 'recharts';
+import { BarChart as ReBarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
+import type { ChartDatum } from './types';
+import { useChartTheme } from './useChartTheme';
 
 interface Props {
-  data: any[];
+  data: ChartDatum[];
   color?: string;
 }
 
-const BarChart: React.FC<Props> = ({ data, color = "#10b981" }) => {
+export default function BarChart({ data, color = '#ffb84d' }: Props) {
+  const chart = useChartTheme();
   return (
-    <div className="w-full min-w-0 h-64 sm:h-80">
+    <div className="h-64 w-full min-w-0 sm:h-80">
       <ResponsiveContainer width="100%" height="100%">
         <ReBarChart data={data}>
-          <XAxis dataKey="name" stroke="#94a3b8" tick={{ fontSize: 11 }} tickMargin={8} />
-          <YAxis stroke="#94a3b8" width={32} tick={{ fontSize: 11 }} />
-          <Tooltip />
+          <XAxis dataKey="name" stroke={chart.axis} tick={{ fontSize: 11 }} tickMargin={8} interval="preserveStartEnd" />
+          <YAxis stroke={chart.axis} width={32} tick={{ fontSize: 11 }} allowDecimals={false} />
+          <Tooltip {...chart.tooltip} />
           <Bar dataKey="value" fill={color} />
         </ReBarChart>
       </ResponsiveContainer>
     </div>
   );
-};
-
-export default BarChart;
+}

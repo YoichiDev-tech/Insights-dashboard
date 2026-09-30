@@ -1,73 +1,59 @@
 import { supabase } from './supabaseClient';
-import type {
-  EngagementMetrics,
-  EventSummary,
-  SourceBreakdown,
-  PageView
-} from '../types/analytics';
+import type { AuditRow, LeadRow, LeadStatus } from './database.types';
+import { normalizeEvent, type TrackedEvent } from './events';
 
-export async function fetchPageViews(): Promise<PageView[]> {
+const PAGE_SIZE = 1000;
+export const MAX_EVENTS = 20000;
+
+export interface EventsResult {
+  events: TrackedEvent[];
+  truncated: boolean;
+}
+
+/** Fetches every interaction event since `sinceMs`, newest first, paginating past the 1000-row API cap. */
+export async function fetchEventsSince(sinceMs: number): Promise<EventsResult> {
+  const since = new Date(sinceMs).toISOString();
+  const events: TrackedEvent[] = [];
+  let truncated = false;
+
+  for (let from = 0; from < MAX_EVENTS; from += PAGE_SIZE) {
+    const { data, error } = await supabase
+      .from('interaction_events')
+      .select('id, kind, event_name, path, intent, session_id, metadata, ip_hash, user_agent, created_at')
+      .gte('created_at', since)
+      .order('created_at', { ascending: false })
+      .range(from, from + PAGE_SIZE - 1);
+
+    if (error) throw new Error(error.message);
+    for (const row of data) events.push(normalizeEvent(row));
+    if (data.length < PAGE_SIZE) return { events, truncated };
+  }
+
+  truncated = true;
+  return { events, truncated };
+}
+
+export async function fetchLeads(limit = 500): Promise<LeadRow[]> {
   const { data, error } = await supabase
-    .from('events')
-    .select('id, path, created_at, metadata')
-    .eq('type', 'pageview')
+    .from('leads')
+    .select('*')
     .order('created_at', { ascending: false })
-    .limit(500);
-
-  if (error || !data) return [];
-
-  return data.map((row: any) => ({
-    id: row.id,
-    path: row.path,
-    created_at: row.created_at,
-    referrer: row.metadata?.referrer ?? null,
-    device: row.metadata?.device ?? null
-  }));
+    .limit(limit);
+  if (error) throw new Error(error.message);
+  return data;
 }
 
-export async function fetchEventSummary(): Promise<EventSummary> {
+export async function updateLeadStatus(id: string, status: LeadStatus): Promise<void> {
+  const { error } = await supabase.from('leads').update({ status }).eq('id', id);
+  if (error) throw new Error(error.message);
+}
+
+export async function fetchAudits(limit = 500): Promise<AuditRow[]> {
   const { data, error } = await supabase
-    .rpc('events_summary'); // you can implement this as a Supabase function
-
-  if (error || !data) {
-    return {
-      totalVisits: 0,
-      uniquePaths: 0,
-      avgPerDay: 0
-    };
-  }
-
-  return {
-    totalVisits: data.total_visits,
-    uniquePaths: data.unique_paths,
-    avgPerDay: data.avg_per_day
-  };
-}
-
-export async function fetchEngagementMetrics(): Promise<EngagementMetrics> {
-  const { data, error } = await supabase.rpc('engagement_metrics');
-
-  if (error || !data) {
-    return {
-      bounceRate: 0,
-      avgSessionDurationSeconds: 0,
-      avgScrollDepthPercent: 0
-    };
-  }
-
-  return {
-    bounceRate: data.bounce_rate,
-    avgSessionDurationSeconds: data.avg_session_duration_seconds,
-    avgScrollDepthPercent: data.avg_scroll_depth_percent
-  };
-}
-
-export async function fetchSourceBreakdown(): Promise<SourceBreakdown[]> {
-  const { data, error } = await supabase.rpc('source_breakdown');
-
-  if (error || !data) return [];
-  return data.map((row: any) => ({
-    label: row.source,
-    value: row.count
-  }));
+    .from('audits')
+    .select('*')
+    .order('created_at', { ascending: false })
+    .limit(limit);
+  if (error) throw new Error(error.message);
+  return data;
 }

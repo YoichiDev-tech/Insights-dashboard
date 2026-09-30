@@ -1,28 +1,43 @@
-import React, { useEffect } from 'react';
+import { useMemo } from 'react';
 import EventTable from '../components/analytics/EventTable';
+import MetricCard from '../components/analytics/MetricCard';
+import PageHeader from '../components/analytics/PageHeader';
 import Panel from '../components/analytics/Panel';
-import { useAnalyticsEvents } from '../hooks/useAnalyticsEvents';
+import { useEvents } from '../hooks/useEvents';
+import { humanOnly } from '../lib/metrics';
 
-const LiveFeedPage: React.FC = () => {
-  const { events, loading, error, refresh } = useAnalyticsEvents(100);
+const ACTIVE_WINDOW_MS = 5 * 60 * 1000;
 
-  useEffect(() => {
-    const interval = window.setInterval(() => void refresh(), 15000);
-    return () => window.clearInterval(interval);
-  }, [refresh]);
+export default function LiveFeedPage() {
+  const { events, loading, realtime, now } = useEvents();
+
+  const view = useMemo(() => {
+    const human = humanOnly(events);
+    return {
+      recent: human.slice(0, 100),
+      active: new Set(human.filter((event) => now - event.ts <= ACTIVE_WINDOW_MS).map((event) => event.sessionId)).size,
+    };
+  }, [events, now]);
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-        <div><h1 className="text-xl font-semibold text-black dark:text-white">Live Feed</h1><p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Recent events, refreshed automatically every 15 seconds.</p></div>
-        <button type="button" onClick={() => void refresh()} className="inline-flex min-h-11 items-center justify-center rounded-md border border-slate-300 px-4 text-sm font-medium text-slate-700 dark:border-slate-700 dark:text-slate-200">Refresh now</button>
+      <PageHeader
+        title="Live Feed"
+        description="New events stream in through Supabase Realtime as visitors use the platform."
+        hideRange
+      />
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <MetricCard label="Active now" value={loading ? '...' : view.active} detail="Sessions with an event in the last 5 min" />
+        <MetricCard
+          label="Stream"
+          value={realtime === 'live' ? 'Live' : realtime === 'connecting' ? 'Connecting' : 'Offline'}
+          detail={realtime === 'offline' ? 'Enable Realtime on interaction_events (see ops-setup.sql)' : 'Push updates, no polling'}
+          tone={realtime === 'live' ? 'up' : realtime === 'offline' ? 'down' : 'flat'}
+        />
       </div>
-      {error && <p className="rounded-md bg-red-50 p-3 text-sm text-red-700 dark:bg-red-950/30 dark:text-red-300">{error}</p>}
-      <Panel title={loading ? 'Loading activity...' : `${events.length} recent events`}>
-        <EventTable events={events} emptyMessage="No recent events have been recorded." />
+      <Panel title={loading ? 'Loading activity...' : `${view.recent.length} most recent events`}>
+        <EventTable events={view.recent} now={now} emptyMessage="No events have been recorded yet." />
       </Panel>
     </div>
   );
-};
-
-export default LiveFeedPage;
+}
