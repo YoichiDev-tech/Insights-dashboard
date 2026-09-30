@@ -1,40 +1,27 @@
-import React from 'react';
-import {
-  PieChart as RePieChart,
-  Pie,
-  Cell,
-  Tooltip,
-  Legend,
-  ResponsiveContainer
-} from 'recharts';
+import { PieChart as RePieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import type { ChartDatum } from './types';
+import { STUDIO_COLORS, useChartTheme } from './useChartTheme';
 
 interface Props {
-  data: any[];
+  data: ChartDatum[];
   colors?: string[];
 }
 
-const PieChart: React.FC<Props> = ({ data, colors = ["#6366f1", "#10b981", "#f59e0b"] }) => {
+export default function PieChart({ data, colors = STUDIO_COLORS }: Props) {
+  const chart = useChartTheme();
   return (
-    <div className="w-full min-w-0 h-72 sm:h-80">
+    <div className="h-72 w-full min-w-0 sm:h-80">
       <ResponsiveContainer width="100%" height="100%">
         <RePieChart>
-          <Pie
-            data={data}
-            dataKey="value"
-            nameKey="name"
-            outerRadius="62%"
-            fill="#8884d8"
-          >
-            {data.map((_, i) => (
-              <Cell key={i} fill={colors[i % colors.length]} />
+          <Pie data={data} dataKey="value" nameKey="name" outerRadius="62%" stroke="none">
+            {data.map((datum, index) => (
+              <Cell key={datum.name} fill={colors[index % colors.length]} />
             ))}
           </Pie>
-          <Tooltip />
-          <Legend verticalAlign="bottom" wrapperStyle={{ fontSize: 12, paddingTop: 8 }} />
+          <Tooltip {...chart.tooltip} />
+          <Legend verticalAlign="bottom" wrapperStyle={{ fontSize: 12, paddingTop: 8, color: chart.axis }} />
         </RePieChart>
       </ResponsiveContainer>
     </div>
   );
-};
-
-export default PieChart;
+}

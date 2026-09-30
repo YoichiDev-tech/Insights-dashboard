@@ -1,44 +1,31 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { ThemeContext, type Theme } from './themeContext';
 
-type Theme = 'light' | 'dark';
-
-interface ThemeContextValue {
-  theme: Theme;
-  toggleTheme: () => void;
+function readStoredTheme(): Theme {
+  try {
+    const stored = window.localStorage.getItem('pw-theme');
+    return stored === 'dark' ? 'dark' : 'light';
+  } catch {
+    return 'light';
+  }
 }
 
-const ThemeContext = createContext<ThemeContextValue | undefined>(undefined);
-
-export const useTheme = () => {
-  const ctx = useContext(ThemeContext);
-  if (!ctx) throw new Error('useTheme must be used within ThemeProvider');
-  return ctx;
-};
-
-export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [theme, setTheme] = useState<Theme>('light');
+export function ThemeProvider({ children }: { children: ReactNode }) {
+  const [theme, setTheme] = useState<Theme>(readStoredTheme);
 
   useEffect(() => {
-    const stored = localStorage.getItem('pw-theme');
-    if (stored === 'light' || stored === 'dark') {
-      setTheme(stored);
+    document.documentElement.classList.toggle('dark', theme === 'dark');
+    try {
+      window.localStorage.setItem('pw-theme', theme);
+    } catch {
+      /* storage unavailable (private mode) -- theme still applies for this session */
     }
-  }, []);
-
-  useEffect(() => {
-    if (theme === 'dark') {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-    }
-    localStorage.setItem('pw-theme', theme);
   }, [theme]);
 
-  const toggleTheme = () => setTheme((t) => (t === 'dark' ? 'light' : 'dark'));
-
-  return (
-    <ThemeContext.Provider value={{ theme, toggleTheme }}>
-      <div className="transition-colors duration-300">{children}</div>
-    </ThemeContext.Provider>
+  const value = useMemo(
+    () => ({ theme, toggleTheme: () => setTheme((t) => (t === 'dark' ? 'light' : 'dark')) }),
+    [theme],
   );
-};
+
+  return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
+}

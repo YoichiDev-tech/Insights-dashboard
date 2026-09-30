@@ -1,76 +1,42 @@
-import React, { useEffect, useState } from 'react';
-import { Outlet, useLocation } from 'react-router-dom';
-
+import { useEffect, useState } from 'react';
+import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import Sidebar from '../components/layout/Sidebar';
-import TopBar from '../components/layout/Topbar';
-import { track } from '../lib/track';
-import { startSession, endSession, recordScroll } from '../lib/session';
+import Topbar from '../components/layout/Topbar';
+import { EventsProvider } from '../context/EventsProvider';
+import { useAuth } from '../hooks/useAuth';
 
-const DashboardLayout: React.FC = () => {
+export default function DashboardLayout() {
+  const { session, loading } = useAuth();
   const location = useLocation();
-  const path = location.pathname;
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  // pageviews
   useEffect(() => {
-    track('pageview', path, {
-      device: getDevice(),
-      referrer: document.referrer || 'direct'
-    });
-  }, [path]);
-
-  // sessions
-  useEffect(() => {
-    startSession(path);
-    return () => {
-      endSession(path);
-    };
-  }, [path]);
-
-  // scroll depth
-  useEffect(() => {
-    const handleScroll = () => {
-      const scrollDepth =
-        (window.scrollY /
-          (document.body.scrollHeight - window.innerHeight)) *
-        100;
-
-      recordScroll(path, Math.round(scrollDepth));
-    };
-
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, [path]);
-
-  // close the drawer automatically if the viewport grows past mobile
-  useEffect(() => {
-    const handleResize = () => {
+    const onResize = () => {
       if (window.innerWidth >= 768) setSidebarOpen(false);
     };
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
   }, []);
 
+  if (loading) {
+    return <div className="grid min-h-screen place-items-center text-sm text-slate-500 dark:text-slate-400">Checking session...</div>;
+  }
+
+  if (!session) {
+    return <Navigate to="/login" replace state={{ from: location.pathname }} />;
+  }
+
   return (
-    <div className="min-h-screen flex md:flex-row">
-      <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
-
-      <div className="flex flex-col flex-1 min-w-0">
-        <TopBar onToggleSidebar={() => setSidebarOpen((v) => !v)} />
-
-        <main className="min-w-0 flex-1 overflow-y-auto bg-transparent p-4 transition-colors duration-300 sm:p-6">
-          <Outlet />
-        </main>
+    <EventsProvider>
+      <div className="flex min-h-screen md:flex-row">
+        <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+        <div className="flex min-w-0 flex-1 flex-col">
+          <Topbar onToggleSidebar={() => setSidebarOpen((open) => !open)} />
+          <main className="min-w-0 flex-1 overflow-y-auto p-4 transition-colors duration-300 sm:p-6">
+            <Outlet />
+          </main>
+        </div>
       </div>
-    </div>
+    </EventsProvider>
   );
-};
-
-function getDevice(): string {
-  const width = window.innerWidth;
-  if (width < 768) return 'mobile';
-  if (width < 1024) return 'tablet';
-  return 'desktop';
 }
-
-export default DashboardLayout;

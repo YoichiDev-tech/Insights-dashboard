@@ -1,60 +1,94 @@
-import React from 'react';
+import { useMemo } from 'react';
 import AreaChart from '../components/charts/AreaChart';
 import PieChart from '../components/charts/PieChart';
 import EventTable from '../components/analytics/EventTable';
+import Empty from '../components/analytics/Empty';
 import MetricCard from '../components/analytics/MetricCard';
+import PageHeader from '../components/analytics/PageHeader';
 import Panel from '../components/analytics/Panel';
-import { countBy, formatDuration } from '../lib/analytics';
-import { useAnalyticsEvents } from '../hooks/useAnalyticsEvents';
+import { RANGES } from '../context/eventsContext';
+import { useEvents } from '../hooks/useEvents';
+import { CONVERSION_EVENTS } from '../lib/events';
+import {
+  average,
+  countBy,
+  delta,
+  formatDuration,
+  humanOnly,
+  measurableDurations,
+  summarizeSessions,
+  trendSeries,
+} from '../lib/metrics';
 
-const OverviewPage: React.FC = () => {
-  const { events, loading, error } = useAnalyticsEvents();
-  const pageviews = events.filter((event) => event.type === 'pageview');
-  const sessions = events.filter((event) => event.type === 'session_end');
-  const durations = sessions.flatMap((event) => event.duration_ms ?? []);
-  const avgDuration = durations.length
-    ? Math.round(durations.reduce((sum, value) => sum + value, 0) / durations.length)
-    : 0;
-  const devices = countBy(pageviews.map((event) => event.device || 'Unknown'));
-  const daily = countBy(
-    pageviews.map((event) => new Date(event.created_at).toISOString().slice(0, 10))
-  );
-  const trend = Object.entries(daily)
-    .sort(([left], [right]) => left.localeCompare(right))
-    .slice(-14)
-    .map(([name, value]) => ({ name: name.slice(5), value }));
+const ACTIVE_WINDOW_MS = 5 * 60 * 1000;
+
+export default function OverviewPage() {
+  const { events, previousEvents, loading, range, now } = useEvents();
+
+  const view = useMemo(() => {
+    const current = humanOnly(events);
+    const previous = humanOnly(previousEvents);
+    const pageviews = current.filter((event) => event.kind === 'pageview');
+    const previousPageviews = previous.filter((event) => event.kind === 'pageview');
+    const sessions = summarizeSessions(current);
+    const previousSessions = summarizeSessions(previous);
+    const visitors = new Set(current.map((event) => event.visitorKey)).size;
+    const previousVisitors = new Set(previous.map((event) => event.visitorKey)).size;
+    const conversions = current.filter((event) => CONVERSION_EVENTS.has(event.name)).length;
+    const previousConversions = previous.filter((event) => CONVERSION_EVENTS.has(event.name)).length;
+    const active = new Set(current.filter((event) => now - event.ts <= ACTIVE_WINDOW_MS).map((event) => event.sessionId)).size;
+    const devices = [...countBy(sessions, (session) => session.device).entries()].map(([name, value]) => ({ name, value }));
+    return {
+      current,
+      pageviews,
+      sessions,
+      visitors,
+      conversions,
+      active,
+      avgDuration: average(measurableDurations(sessions)),
+      devices,
+      deltas: {
+        pageviews: delta(pageviews.length, previousPageviews.length),
+        visitors: delta(visitors, previousVisitors),
+        sessions: delta(sessions.length, previousSessions.length),
+        conversions: delta(conversions, previousConversions),
+      },
+      trend: trendSeries(pageviews, RANGES[range].days, now),
+    };
+  }, [events, previousEvents, range, now]);
+
+  const show = (value: string | number) => (loading ? '...' : value);
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-xl font-semibold text-slate-800 dark:text-white">Lead Generation Overview</h1>
-        <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">How campaigns are driving PrismWave Studio traffic and interactions.</p>
-        <div className="mt-3 h-px w-full bg-sky-100 dark:bg-slate-700" />
-      </div>
+      <PageHeader
+        title="Lead Generation Overview"
+        description="Real traffic and conversions recorded by the PrismWave Studio platform. Bots are excluded."
+      />
 
-      {error && <p className="rounded-md bg-red-50 p-3 text-sm text-red-700 dark:bg-red-950/30 dark:text-red-300">{error}</p>}
-
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <MetricCard label="Pageviews" value={loading ? '...' : pageviews.length} detail="Recorded visits" />
-        <MetricCard label="Sessions" value={loading ? '...' : sessions.length} detail="Completed sessions" />
-        <MetricCard label="Avg. session" value={loading ? '...' : formatDuration(avgDuration)} detail="Based on session ends" />
-        <MetricCard label="Tracked actions" value={loading ? '...' : events.filter((event) => !['pageview', 'session_start', 'session_end', 'scroll'].includes(event.type)).length} detail="Chat and conversion signals" />
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
+        <MetricCard label="Active now" value={show(view.active)} detail="Sessions active in the last 5 min" />
+        <MetricCard label="Pageviews" value={show(view.pageviews.length)} detail={view.deltas.pageviews.label} tone={view.deltas.pageviews.tone} />
+        <MetricCard label="Visitors" value={show(view.visitors)} detail={view.deltas.visitors.label} tone={view.deltas.visitors.tone} />
+        <MetricCard label="Sessions" value={show(view.sessions.length)} detail={view.deltas.sessions.label} tone={view.deltas.sessions.tone} />
+        <MetricCard label="Conversions" value={show(view.conversions)} detail={view.deltas.conversions.label} tone={view.deltas.conversions.tone} />
       </div>
 
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,2fr)_minmax(16rem,1fr)]">
-        <Panel title="Pageview trend" description="Most recent 14 calendar days in the loaded event window.">
-          {trend.length ? <AreaChart data={trend} color="#38bdf8" /> : <p className="text-sm text-slate-500 dark:text-slate-400">No real pageview data is available yet.</p>}
+        <Panel
+          title="Pageview trend"
+          description={`${RANGES[range].label}. Avg. session length: ${formatDuration(view.avgDuration)} (sessions with 2+ events).`}
+        >
+          {view.pageviews.length ? <AreaChart data={view.trend} /> : <Empty>No pageviews recorded in this period.</Empty>}
         </Panel>
-        <Panel title="Device mix" description="Devices recorded with pageviews.">
-          {Object.keys(devices).length ? <PieChart data={Object.entries(devices).map(([name, value]) => ({ name, value }))} colors={["#38bdf8", "#22c55e", "#f59e0b", "#a855f7"]} /> : <p className="text-sm text-slate-500 dark:text-slate-400">No real device data is available yet.</p>}
+        <Panel title="Device mix" description="Sessions by device, derived from the browser user agent.">
+          {view.devices.length ? <PieChart data={view.devices} /> : <Empty>No sessions recorded in this period.</Empty>}
         </Panel>
       </div>
 
-      <Panel title="Latest activity" description="The newest events received by the analytics pipeline.">
-        <EventTable events={events.slice(0, 8)} />
+      <Panel title="Latest activity" description="Newest human events received by the tracker.">
+        <EventTable events={view.current.slice(0, 8)} now={now} />
       </Panel>
     </div>
   );
-};
-
-export default OverviewPage;
+}

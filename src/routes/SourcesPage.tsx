@@ -1,58 +1,73 @@
-import React, { useEffect, useState } from 'react';
-import { supabase } from '../lib/supabaseClient';
+import { useCallback, useMemo } from 'react';
+import BarChart from '../components/charts/BarChart';
+import PieChart from '../components/charts/PieChart';
+import Empty from '../components/analytics/Empty';
+import MetricCard from '../components/analytics/MetricCard';
+import PageHeader from '../components/analytics/PageHeader';
+import Panel from '../components/analytics/Panel';
+import RankedList from '../components/analytics/RankedList';
+import { useEvents } from '../hooks/useEvents';
+import { useRemote } from '../hooks/useRemote';
+import { leadAttribution } from '../lib/leads';
+import type { LeadRow } from '../lib/database.types';
+import { countBy, humanOnly, summarizeSessions, topEntries } from '../lib/metrics';
+import { fetchLeads } from '../lib/queries';
 
-interface EventRow {
-  id: string;
-  type: string;
-  path: string;
-  device: string | null;
-  referrer: string | null;
-  duration_ms: number | null;
-  scroll_depth: number | null;
-  chat_length: number | null;
-  analysis_score: number | null;
-  issues_count: number | null;
-  created_at: string;
-}
+const NO_LEADS: LeadRow[] = [];
 
-const SourcesPage: React.FC = () => {
-  const [referrers, setReferrers] = useState<{ [key: string]: number }>({});
+export default function SourcesPage() {
+  const { events, loading, range } = useEvents();
+  const fetchAllLeads = useCallback(() => fetchLeads(), []);
+  const leads = useRemote(fetchAllLeads, NO_LEADS);
 
-  useEffect(() => {
-    (async () => {
-      const { data, error } = await supabase
-        .from('events')
-        .select('*')
-        .order('created_at', { ascending: false });
+  const view = useMemo(() => {
+    const sessions = summarizeSessions(humanOnly(events)).filter((session) => session.pageviews > 0);
+    const sources = countBy(sessions, (session) => session.source);
+    const mediums = [...countBy(sessions, (session) => session.medium).entries()].map(([name, value]) => ({ name, value }));
+    const campaigns = countBy(
+      sessions.filter((session) => session.campaign),
+      (session) => session.campaign,
+    );
+    const landing = countBy(sessions, (session) => session.landingPath || '/');
+    const leadSources = countBy(leads.data, (lead) => leadAttribution(lead).source);
+    return { sessions, sources, mediums, campaigns, landing, leadSources };
+  }, [events, leads.data]);
 
-      if (error) return console.error(error);
-
-      const rows = data as EventRow[];
-
-      const refCounts: { [key: string]: number } = {};
-      rows.forEach((e) => {
-        if (e.referrer) {
-          refCounts[e.referrer] = (refCounts[e.referrer] || 0) + 1;
-        }
-      });
-
-      setReferrers(refCounts);
-    })();
-  }, []);
+  const topSources = topEntries(view.sources, 8).map(([name, value]) => ({ name, value }));
 
   return (
     <div className="space-y-6">
-      <h1 className="text-xl font-semibold text-black dark:text-white">Traffic Sources</h1>
+      <PageHeader
+        title="Traffic Sources"
+        description={`First-touch attribution per session (UTM parameters, otherwise the referring site). ${range === '24h' ? 'Last 24 hours.' : ''}`}
+      />
 
-      <div className="p-4 rounded-lg bg-slate-100 dark:bg-slate-800">
-        {Object.entries(referrers).map(([ref, count]) => (
-          <p key={ref} className="text-black dark:text-white">
-            {ref}: {count}
-          </p>
-        ))}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <MetricCard label="Sessions" value={loading ? '...' : view.sessions.length} />
+        <MetricCard label="Distinct sources" value={loading ? '...' : view.sources.size} />
+        <MetricCard label="Leads (all time)" value={leads.loading ? '...' : leads.data.length} detail="Attribution stored with each lead" />
+      </div>
+
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <Panel title="Top sources" description="Sessions by first-touch source.">
+          {topSources.length ? <BarChart data={topSources} color="#ffb84d" /> : <Empty>No sessions recorded in this period.</Empty>}
+        </Panel>
+        <Panel title="Mediums" description="direct, referral, or the utm_medium you set.">
+          {view.mediums.length ? <PieChart data={view.mediums} /> : <Empty>No sessions recorded in this period.</Empty>}
+        </Panel>
+      </div>
+
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+        <Panel title="Campaigns" description="Only sessions that carried a utm_campaign.">
+          <RankedList rows={topEntries(view.campaigns, 8)} emptyMessage="No tagged campaigns in this period." />
+        </Panel>
+        <Panel title="Landing pages">
+          <RankedList rows={topEntries(view.landing, 8)} emptyMessage="No sessions recorded in this period." />
+        </Panel>
+        <Panel title="Lead sources" description="Where submitted leads originally came from.">
+          <RankedList rows={topEntries(view.leadSources, 8)} emptyMessage="No leads submitted yet." />
+        </Panel>
       </div>
     </div>
   );
-};
-
-export default SourcesPage;
+}

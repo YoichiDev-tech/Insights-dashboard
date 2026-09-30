@@ -1,57 +1,95 @@
-import React from 'react';
+import { useMemo } from 'react';
+import Empty from '../components/analytics/Empty';
 import MetricCard from '../components/analytics/MetricCard';
+import PageHeader from '../components/analytics/PageHeader';
 import Panel from '../components/analytics/Panel';
-import { formatPath } from '../lib/analytics';
-import { useAnalyticsEvents } from '../hooks/useAnalyticsEvents';
+import { useEvents } from '../hooks/useEvents';
+import { countBy, humanOnly, pct } from '../lib/metrics';
 
-const PagesPage: React.FC = () => {
-  const { events, loading, error } = useAnalyticsEvents();
-  const pageviews = events.filter((event) => event.type === 'pageview');
-  const rows = Object.entries(
-    pageviews.reduce<Record<string, { views: number; scrolls: number[] }>>((result, event) => {
-      const row = result[event.path] ?? { views: 0, scrolls: [] };
-      row.views += 1;
-      if (event.scroll_depth !== null) row.scrolls.push(event.scroll_depth);
-      result[event.path] = row;
-      return result;
-    }, {})
-  )
-    .map(([path, value]) => ({
-      path,
-      views: value.views,
-      avgScroll: value.scrolls.length
-        ? Math.round(value.scrolls.reduce((sum, scroll) => sum + scroll, 0) / value.scrolls.length)
-        : null
-    }))
-    .sort((left, right) => right.views - left.views);
+interface PageRow {
+  path: string;
+  views: number;
+  sessions: number;
+  entries: number;
+  exits: number;
+  actions: number;
+}
+
+export default function PagesPage() {
+  const { events, loading } = useEvents();
+
+  const rows = useMemo<PageRow[]>(() => {
+    const human = humanOnly(events);
+    const pageviews = human.filter((event) => event.kind === 'pageview').sort((a, b) => a.ts - b.ts);
+    const views = countBy(pageviews, (event) => event.path);
+    const actions = countBy(human.filter((event) => event.kind === 'action'), (event) => event.path);
+    const sessionsByPath = new Map<string, Set<string>>();
+    const firstPath = new Map<string, string>();
+    const lastPath = new Map<string, string>();
+    for (const event of pageviews) {
+      const set = sessionsByPath.get(event.path) ?? new Set<string>();
+      set.add(event.sessionId);
+      sessionsByPath.set(event.path, set);
+      if (!firstPath.has(event.sessionId)) firstPath.set(event.sessionId, event.path);
+      lastPath.set(event.sessionId, event.path);
+    }
+    const entries = countBy([...firstPath.values()], (path) => path);
+    const exits = countBy([...lastPath.values()], (path) => path);
+    return [...views.entries()]
+      .map(([path, count]) => ({
+        path,
+        views: count,
+        sessions: sessionsByPath.get(path)?.size ?? 0,
+        entries: entries.get(path) ?? 0,
+        exits: exits.get(path) ?? 0,
+        actions: actions.get(path) ?? 0,
+      }))
+      .sort((a, b) => b.views - a.views);
+  }, [events]);
+
+  const totalViews = rows.reduce((sum, row) => sum + row.views, 0);
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-xl font-semibold text-black dark:text-white">Pages</h1>
-        <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Which pages attract attention and how far visitors scroll.</p>
-      </div>
-      {error && <p className="rounded-md bg-red-50 p-3 text-sm text-red-700 dark:bg-red-950/30 dark:text-red-300">{error}</p>}
+      <PageHeader title="Pages" description="Which pages attract visits, start sessions, and end them." />
+
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <MetricCard label="Tracked pages" value={loading ? '...' : rows.length} detail="Unique paths with pageviews" />
-        <MetricCard label="Total pageviews" value={loading ? '...' : pageviews.length} detail="Within the loaded event window" />
+        <MetricCard label="Total pageviews" value={loading ? '...' : totalViews} />
       </div>
-      <Panel title="Page performance" description="Scroll depth is shown only where scroll events were recorded.">
+
+      <Panel title="Page performance" description="Entries and exits count the first and last page of each session.">
         {rows.length ? (
           <div className="-mx-4 overflow-x-auto sm:mx-0">
             <table className="min-w-full text-left text-sm">
               <thead className="border-b border-slate-200 text-xs text-slate-500 dark:border-slate-800 dark:text-slate-400">
-                <tr><th className="px-4 py-2 font-medium sm:px-0">Page</th><th className="px-4 py-2 font-medium">Views</th><th className="px-4 py-2 font-medium">Avg. scroll</th></tr>
+                <tr>
+                  <th className="px-4 py-2 font-medium sm:px-0">Page</th>
+                  <th className="px-4 py-2 font-medium">Views</th>
+                  <th className="px-4 py-2 font-medium">Sessions</th>
+                  <th className="px-4 py-2 font-medium">Entries</th>
+                  <th className="px-4 py-2 font-medium">Exit rate</th>
+                  <th className="px-4 py-2 font-medium">Actions</th>
+                </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                {rows.map((row) => <tr key={row.path} className="text-slate-700 dark:text-slate-200"><td className="max-w-[16rem] truncate px-4 py-3 font-medium sm:px-0" title={row.path}>{formatPath(row.path)}</td><td className="px-4 py-3">{row.views}</td><td className="px-4 py-3">{row.avgScroll === null ? 'No data' : `${row.avgScroll}%`}</td></tr>)}
+                {rows.map((row) => (
+                  <tr key={row.path} className="text-slate-700 dark:text-slate-200">
+                    <td className="max-w-[16rem] truncate px-4 py-3 font-medium sm:px-0" title={row.path}>{row.path}</td>
+                    <td className="px-4 py-3">{row.views}</td>
+                    <td className="px-4 py-3">{row.sessions}</td>
+                    <td className="px-4 py-3">{row.entries}</td>
+                    <td className="px-4 py-3">{pct(row.exits, row.sessions)}%</td>
+                    <td className="px-4 py-3">{row.actions}</td>
+                  </tr>
+                ))}
               </tbody>
             </table>
           </div>
-        ) : <p className="text-sm text-slate-500 dark:text-slate-400">No pageviews recorded yet.</p>}
+        ) : (
+          <Empty>No pageviews recorded in this period.</Empty>
+        )}
       </Panel>
     </div>
   );
-};
-
-export default PagesPage;
+}
