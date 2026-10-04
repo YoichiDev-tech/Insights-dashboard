@@ -27,7 +27,7 @@ export default function LoginPage() {
     <div className="grid min-h-screen place-items-center p-4">
       <form
         onSubmit={(event) => void onSubmit(event)}
-        className="w-full max-w-sm space-y-4 rounded-xl border border-white/80 bg-white/70 p-6 shadow-[0_12px_32px_rgba(76,145,180,0.15)] backdrop-blur-md dark:border-slate-800 dark:bg-pw_panel"
+        className="w-full max-w-sm space-y-4 rounded-xl border border-white bg-white p-6 shadow-[0_12px_32px_rgba(77,106,170,0.15)] dark:border-[#2b3a55] dark:bg-[#17243a] dark:shadow-[0_12px_32px_rgba(0,0,0,0.26)]"
       >
         <div>
           <h1 className="text-lg font-semibold text-slate-800 dark:text-white">

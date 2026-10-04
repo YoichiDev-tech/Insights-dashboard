@@ -2,15 +2,38 @@
 @tailwind components;
 @tailwind utilities;
 
+body * {
+  cursor: default;
+}
+
+a,
+button,
+select,
+[role='button'],
+label[for] {
+  cursor: pointer;
+}
+
+input,
+textarea,
+[contenteditable='true'] {
+  cursor: text;
+}
+
 body {
   @apply min-h-screen font-sans text-slate-800 antialiased;
   background:
-    radial-gradient(circle at 12% 8%, rgba(186, 230, 253, 0.42), transparent 30rem),
-    linear-gradient(135deg, #f8fcff 0%, #edf8ff 52%, #f8fbff 100%);
+    radial-gradient(circle at 12% 8%, rgba(139, 181, 255, 0.24), transparent 32rem),
+    radial-gradient(circle at 88% 12%, rgba(166, 146, 255, 0.2), transparent 30rem),
+    linear-gradient(135deg, #dceeff 0%, #e6e9ff 52%, #eee8ff 100%);
 }
 
 .dark body {
-  background: #0a0e1a;
+  background:
+    radial-gradient(circle at 12% 8%, rgba(108, 99, 255, 0.12), transparent 32rem),
+    radial-gradient(circle at 88% 12%, rgba(255, 184, 77, 0.08), transparent 26rem),
+    radial-gradient(circle at 72% 92%, rgba(55, 230, 196, 0.04), transparent 30rem),
+    #0a0e1a;
   color: #f3f4f1;
 }
 

@@ -17,7 +17,7 @@ export function useChartTheme() {
       },
       labelStyle: { color: dark ? '#8b93a7' : '#475569' },
       itemStyle: { color: dark ? '#f3f4f1' : '#0f172a' },
-      cursor: { fill: dark ? 'rgba(255,184,77,0.08)' : 'rgba(56,189,248,0.08)' },
+      cursor: { fill: dark ? 'rgba(255,184,77,0.08)' : 'rgba(137,128,247,0.1)' },
     },
   };
 }
