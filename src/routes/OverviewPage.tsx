@@ -95,7 +95,7 @@ export default function OverviewPage() {
             </h2>
             <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
               {loading
-                ? 'Loading the selected period from Supabase.'
+                ? 'Loading the selected period…'
                 : !hasSessions
                   ? 'There is not enough traffic in this period to judge the offer. A quiet day is a distribution signal, not a verdict on the business.'
                   : !hasConversions
@@ -116,7 +116,9 @@ export default function OverviewPage() {
             <section>
               <h3 className="text-sm font-semibold text-slate-900 dark:text-white">Next best actions</h3>
               <ol className="mt-2 list-decimal space-y-2 pl-5 text-sm text-slate-600 dark:text-slate-300">
-                {!hasSessions ? (
+                {loading ? (
+                  <li className="list-none">Recommendations will appear once the selected period has finished loading.</li>
+                ) : !hasSessions ? (
                   <>
                     <li>Publish one useful, specific post for your target customer; use UTM tags so its visits are attributable.</li>
                     <li>Send five thoughtful, relevant outreach messages and record the replies—not just the number sent.</li>
